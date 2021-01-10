@@ -1,0 +1,593 @@
+- id: "1541182668961"
+  alias: Lamp hal aan bij beweging in hal
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d0002753e59
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: numeric_state
+      below: 100
+      entity_id: sensor.bh1750_illuminance
+  action:
+    - service: light.turn_on
+      entity_id: light.hal
+- id: "1541264176539"
+  alias: Lamp hal uit na sensor hal uit
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d0002753e59
+      from: "on"
+      platform: state
+      to: "off"
+  condition: []
+  action:
+    - service: light.turn_off
+      entity_id: light.hal
+- id: "1542306632487"
+  alias: Lamp overloop aan na beweging op overloop
+  trigger:
+    - entity_id: input_boolean.overloop_lamp_timer
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: and
+      conditions:
+        - condition: numeric_state
+          below: 300
+          entity_id: sensor.bh1750_illuminance
+        - condition: or
+          conditions:
+            - after: 07:30:00
+              before: "23:59:59"
+              condition: time
+            - after: 00:00:00
+              before: 01:00:00
+              condition: time
+  action:
+    - service: light.turn_on
+      entity_id: light.overloop
+- id: "1541858493516"
+  alias: Lamp overloop uit na overloop sensor uit
+  trigger:
+    - entity_id: input_boolean.overloop_lamp_timer
+      from: "on"
+      platform: state
+      to: "off"
+  condition: []
+  action:
+    - service: light.turn_off
+      entity_id: light.overloop
+- id: "1532616153454"
+  alias: Lampen aandoen als het donker wordt
+  trigger:
+    - below: 85
+      entity_id: sensor.bh1750_illuminance
+      platform: numeric_state
+  condition:
+    - after: "15:00:00"
+      before: "22:45:00"
+      condition: time
+  action:
+    - service: script.turn_on_lroom_lights
+    - entity_id: input_boolean.k_lights_on_other
+      service: input_boolean.turn_on
+    - condition: state
+      entity_id: input_boolean.k_lights_on_k_sensor
+      state: "off"
+    - service: script.turn_on_k_lights_dimmed
+  mode: single
+- id: "1544954889786"
+  alias: Keukenverlichting aan bij binnenkomst kamer
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d0002c0e7f6
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: and
+      conditions:
+        - below: 100
+          condition: numeric_state
+          entity_id: sensor.bh1750_illuminance
+        - condition: state
+          entity_id: input_boolean.k_lights_on_by_entering
+          state: "off"
+        - condition: state
+          entity_id: input_boolean.k_lights_on_other
+          state: "off"
+        - condition: or
+          conditions:
+            - after: "22:31:00"
+              before: "23:59:59"
+              condition: time
+            - after: 00:00:00
+              before: "10:00:00"
+              condition: time
+  action:
+    - entity_id: input_boolean.k_lights_on_by_entering
+      service: input_boolean.turn_on
+    - entity_id: input_boolean.k_lights_off_by_autm
+      service: input_boolean.turn_off
+    - service: script.turn_on_k_lights_dimmed
+- id: "1546870672696"
+  alias: Keukenverlichting niet dimmen maar uit bij voldoende daglicht
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bh1750_illuminance
+      above: 200
+  condition:
+    - condition: state
+      entity_id: input_boolean.k_lights_on_by_entering
+      state: "on"
+  action:
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_on_by_entering
+    - condition: state
+      entity_id: input_boolean.k_lights_on_k_sensor
+      state: "off"
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.k_lights_off_by_autm
+    - service: script.turn_off_k_lights
+- id: "1548502602565"
+  alias: Keuken lampen feller of aan door keuken sensor 1
+  trigger:
+    - entity_id: input_boolean.k_lights_timer
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: or
+      conditions:
+        - condition: numeric_state
+          entity_id: sensor.bh1750_illuminance
+          below: 350
+        - condition: numeric_state
+          entity_id: sensor.illumination_158d00020134a6
+          below: 50
+  action:
+    - service:
+        "{% if (is_state('input_boolean.k_lights_on_other', 'off') or is_state('input_boolean.k_lights_on_by_entering', 'off')) %}
+        script.turn_up_k_lights
+        {% else %}
+        script.turn_on_k_lights
+        {% endif %}"
+  mode: single
+- id: "1602344054784"
+  alias: Keuken lampen feller of aan door keuken sensor 2
+  description: ""
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bh1750_illuminance
+      below: 345
+  condition:
+    - condition: state
+      entity_id: input_boolean.k_lights_timer
+      state: "On"
+  action:
+    - service:
+        "{% if (is_state('input_boolean.k_lights_on_other', 'off') or is_state('input_boolean.k_lights_on_by_entering', 'off')) %}
+        script.turn_up_k_lights
+        {% else %}
+        script.turn_on_k_lights
+        {% endif %}"
+  mode: single
+- id: "1548502665941"
+  alias: Keuken lampen dimmen of uit door keuken sensor
+  trigger:
+    - entity_id: input_boolean.k_lights_timer
+      from: "on"
+      platform: state
+      to: "off"
+  condition:
+    - condition: state
+      entity_id: input_boolean.k_lights_on_k_sensor
+      state: "on"
+  action:
+    - service:
+        "{% if (is_state('input_boolean.k_lights_on_other', 'on') or is_state('input_boolean.k_lights_on_by_entering', 'on')) %}
+        script.dim_k_lights
+        {% else %}
+        script.turn_off_k_lights
+        {% endif %}"
+- id: "1548517927641"
+  alias: input_boolean uit bij keukenlampen manueel uit
+  trigger:
+    - entity_id: group.kitchen_lights
+      from: "on"
+      platform: state
+      to: "off"
+  condition:
+    condition: and
+    conditions:
+      - condition: state
+        entity_id: input_boolean.k_lights_off_by_autm
+        state: "off"
+      - condition: or
+        conditions:
+          - condition: state
+            entity_id: input_boolean.k_lights_on_other
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.k_lights_on_by_entering
+            state: "on"
+  action:
+    - service: switch.turn_off
+      entity_id:
+        - switch.adaptive_lighting_keuken
+        - switch.adaptive_lighting_keuken_dimmed
+    - service: input_boolean.turn_off
+      entity_id:
+        - input_boolean.k_lights_on_other
+        - input_boolean.k_lights_on_by_entering
+        - input_boolean.k_lights_on_k_sensor
+- id: "1558633742624"
+  alias: Weer waarschuwing
+  trigger:
+    - entity_id: binary_sensor.meteoalarm
+      from: "off"
+      platform: state
+      to: "on"
+  condition: []
+  action:
+    - service: notify.pushover
+      data_template:
+        title: "{{state_attr('binary_sensor.meteoalarm', 'headline')}}"
+        message:
+          "{{state_attr('binary_sensor.meteoalarm', 'description')}} is effective
+          on {{state_attr('binary_sensor.meteoalarm', 'effective')}}"
+- id: "1559887804033"
+  alias: Start all Automations at HA start
+  trigger:
+    - event: start
+      platform: homeassistant
+  condition: []
+  action:
+    - service: automation.turn_on
+      entity_id: all
+- id: "1566116891465"
+  alias: Verlichting niet automatisch aan wanneer niet aanwezig
+  trigger:
+    - entity_id: input_select.home_away
+      from: Home
+      platform: state
+      to: Away
+  condition: []
+  action:
+    - service: automation.turn_off
+      entity_id: automation.lampen_aandoen_als_het_donker_wordt
+- id: "1590046855763"
+  alias: Verlichting automatisch aan bij aanwezig
+  description: ""
+  trigger:
+    - entity_id: input_select.home_away
+      from: Away
+      platform: state
+      to: Home
+  condition: []
+  action:
+    - data: {}
+      entity_id: automation.lampen_aandoen_als_het_donker_wordt
+      service: automation.turn_on
+- id: "1566118502888"
+  alias: Set heating preset when going away
+  trigger:
+    - entity_id: input_select.home_away
+      from: Home
+      platform: state
+      to: Away
+  condition: []
+  action:
+    - service: climate.set_hvac_mode
+      data:
+        entity_id: climate.anna
+        hvac_mode: heat
+    - service: climate.set_hvac_mode
+      data:
+        entity_id: climate.lisa_badkamer
+        hvac_mode: heat
+    - delay: 00:00:03
+    - service: climate.set_preset_mode
+      data:
+        entity_id: climate.anna
+        preset_mode: home
+    - service: climate.set_preset_mode
+      data:
+        entity_id: climate.lisa_badkamer
+        preset_mode: home
+    - delay: 00:00:03
+    - service: climate.set_preset_mode
+      data:
+        entity_id: climate.anna
+        preset_mode: away
+    - service: climate.set_preset_mode
+      data:
+        entity_id: climate.lisa_badkamer
+        preset_mode: away
+- id: "1566119405194"
+  alias: Set heating to weekschedule when return from away
+  trigger:
+    - entity_id: input_select.home_away
+      from: Away
+      platform: state
+      to: Home
+  condition: []
+  action:
+    - service: climate.set_hvac_mode
+      data:
+        entity_id: climate.anna
+        hvac_mode: auto
+    - service: climate.set_hvac_mode
+      data:
+        entity_id: climate.lisa_badkamer
+        hvac_mode: auto
+- id: "1569235476854"
+  alias: Boolean en timer keuken aan
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d00020134a6
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: timer.keuken_lampen_aan
+      state: idle
+  action:
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.k_lights_timer
+    - service: timer.start
+      entity_id: timer.keuken_lampen_aan
+  mode: single
+- id: "1569231830599"
+  alias: Restart keukentimer bij beweging
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d00020134a6
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: timer.keuken_lampen_aan
+      state: active
+  action:
+    - data:
+        entity_id: timer.keuken_lampen_aan
+      service: timer.start
+- id: "1569235274032"
+  alias: Restart keukentimer bij beweging 2
+  trigger:
+    - entity_id: timer.keuken_lampen_aan
+      from: active
+      platform: state
+      to: idle
+  condition:
+    - condition: state
+      entity_id: binary_sensor.motion_sensor_158d00020134a6
+      state: "on"
+  action:
+    - service: timer.start
+      entity_id: timer.keuken_lampen_aan
+- id: "1569235778477"
+  alias: Boolean keuken timer uit
+  trigger:
+    - entity_id: timer.keuken_lampen_aan
+      from: active
+      platform: state
+      to: idle
+  condition:
+    - condition: state
+      entity_id: binary_sensor.motion_sensor_158d00020134a6
+      state: "off"
+  action:
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_timer
+- id: "1577808454851"
+  alias: Lamp aan bij beweging badkamer 1
+  trigger:
+    - entity_id: input_boolean.bk_lights_timer
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: or
+      conditions:
+        - after: 07:30:00
+          before: "23:59:59"
+          condition: time
+        - after: 00:00:00
+          before: 01:00:00
+          condition: time
+  action:
+    - service: light.turn_on
+      entity_id:
+        - light.badkamer_1
+        - light.badkamer_2
+- id: "1602397990606"
+  alias: Lamp aan bij beweging in badkamer 2
+  description: ""
+  trigger:
+    - platform: time
+      at: 07:30:00
+  condition:
+    - condition: state
+      entity_id: input_boolean.bk_lights_timer
+      state: "on"
+  action:
+    - service: light.turn_on
+      entity_id:
+        - light.badkamer_1
+        - light.badkamer_2
+  mode: single
+- id: "1577808533018"
+  alias: Lamp uit na sensor badkamer uit
+  description: ""
+  trigger:
+    - entity_id: input_boolean.bk_lights_timer
+      from: "on"
+      platform: state
+      to: "off"
+  condition: []
+  action:
+    - service: light.turn_off
+      entity_id:
+        - light.badkamer_1
+        - light.badkamer_2
+- id: "1577873204169"
+  alias: Boolean en timer badkamer aan
+  description: ""
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d00027a3e07
+      from: "off"
+      platform: state
+      to: "on"
+    - entity_id: binary_sensor.motion_sensor_158d0002717b4e
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: timer.bkamer_lampen_aan
+      state: idle
+  action:
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.bk_lights_timer
+    - service: timer.start
+      entity_id: timer.bkamer_lampen_aan
+  mode: single
+- id: "1577873596464"
+  alias: Restart badkamer timer bij beweging
+  description: ""
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d00027a3e07
+      from: "off"
+      platform: state
+      to: "on"
+    - entity_id: binary_sensor.motion_sensor_158d0002717b4e
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: timer.bkamer_lampen_aan
+      state: active
+  action:
+    - entity_id: timer.bkamer_lampen_aan
+      service: timer.start
+- id: "1577872949690"
+  alias: Restart badkamer timer bij beweging 2
+  description: ""
+  trigger:
+    - entity_id: timer.bkamer_lampen_aan
+      from: active
+      platform: state
+      to: idle
+  condition:
+    condition: and
+    conditions:
+      - condition: state
+        entity_id: binary_sensor.motion_sensor_158d00027a3e07
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.motion_sensor_158d0002717b4e
+        state: "on"
+  action:
+    - data: {}
+      entity_id: timer.bkamer_lampen_aan
+      service: timer.start
+- id: "1577873897078"
+  alias: Boolean badkamer timer uit
+  description: ""
+  trigger:
+    - entity_id: timer.bkamer_lampen_aan
+      from: active
+      platform: state
+      to: idle
+  condition:
+    - condition: state
+      entity_id: binary_sensor.motion_sensor_158d00027a3e07
+      state: "off"
+    - condition: state
+      entity_id: binary_sensor.motion_sensor_158d0002717b4e
+      state: "off"
+  action:
+    - entity_id: input_boolean.bk_lights_timer
+      service: input_boolean.turn_off
+  mode: single
+- id: "1577979989904"
+  alias: Boolean overloop timer uit
+  trigger:
+    - entity_id: timer.overloop_lamp_aan
+      from: active
+      platform: state
+      to: idle
+  condition:
+    condition: and
+    conditions:
+      - condition: state
+        entity_id: binary_sensor.motion_sensor_158d0002717bab
+        state: "off"
+      - condition: state
+        entity_id: binary_sensor.motion_sensor_158d00029a9e33
+        state: "off"
+  action:
+    - entity_id: input_boolean.overloop_lamp_timer
+      service: input_boolean.turn_off
+- id: "1577980145015"
+  alias: Boolean en timer overloop aan
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d0002717bab
+      from: "off"
+      platform: state
+      to: "on"
+    - entity_id: binary_sensor.motion_sensor_158d00029a9e33
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: timer.overloop_lamp_aan
+      state: idle
+  action:
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.overloop_lamp_timer
+    - service: timer.start
+      entity_id: timer.overloop_lamp_aan
+- id: "1577980285670"
+  alias: Restart overloop timer bij beweging
+  trigger:
+    - entity_id: binary_sensor.motion_sensor_158d00029a9e33
+      from: "off"
+      platform: state
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: timer.overloop_lamp_aan
+      state: active
+  action:
+    - entity_id: timer.overloop_lamp_aan
+      service: timer.start
+- id: "1577980359918"
+  alias: Restart overloop timer bij beweging 2
+  trigger:
+    - entity_id: timer.overloop_lamp_aan
+      from: active
+      platform: state
+      to: idle
+  condition:
+    - condition: state
+      entity_id: binary_sensor.motion_sensor_158d00029a9e33
+      state: "on"
+  action:
+    - entity_id: timer.overloop_lamp_aan
+      service: timer.start
+- id: "1582464342732"
+  alias: Update Google Assistant
+  description: ""
+  trigger:
+    - event: start
+      platform: homeassistant
+  condition: []
+  action:
+    - data:
+        agent_user_id: b912569d7a454601b0d3e3eda4e557c3
+      service: google_assistant.request_sync

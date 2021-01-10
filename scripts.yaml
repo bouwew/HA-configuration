@@ -1,0 +1,85 @@
+turn_on_lroom_lights:
+  sequence:
+    - delay: 00:10:00
+    - service: homeassistant.turn_on
+      entity_id: group.living_room_lights
+
+turn_up_k_lights:
+  sequence:
+    - service: switch.turn_off
+      entity_id:
+        - switch.adaptive_lighting_keuken_dimmed
+    - delay:
+        milliseconds: 300
+    - service: homeassistant.turn_on
+      entity_id: light.keukenlampen
+    - service: switch.turn_on
+      entity_id:
+        - switch.adaptive_lighting_keuken
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.k_lights_on_k_sensor
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_off_by_autm
+
+turn_on_k_lights:
+  sequence:
+    - service: switch.turn_on
+      entity_id:
+        - switch.adaptive_lighting_keuken
+    - service: homeassistant.turn_on
+      entity_id: light.keukenlampen
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.k_lights_on_k_sensor
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_off_by_autm
+
+turn_on_k_lights_dimmed:
+  sequence:
+    - service: switch.turn_on
+      entity_id:
+        - switch.adaptive_lighting_keuken_dimmed
+    - service: homeassistant.turn_on
+      entity_id: light.keukenlampen
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_off_by_autm
+
+turn_off_k_lights:
+  sequence:
+    - service: switch.turn_off
+      entity_id:
+        - switch.adaptive_lighting_keuken_dimmed
+        - switch.adaptive_lighting_keuken
+    - delay:
+        milliseconds: 300
+    - service: homeassistant.turn_off
+      entity_id: light.keukenlampen
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_on_k_sensor
+    - service: input_boolean.turn_on
+      entity_id: input_boolean.k_lights_off_by_autm
+
+dim_k_lights:
+  sequence:
+    - service: switch.turn_off
+      entity_id:
+        - switch.adaptive_lighting_keuken
+    - delay:
+        milliseconds: 300
+    - service: homeassistant.turn_on
+      entity_id: light.keukenlampen
+    - service: switch.turn_on
+      entity_id:
+        - switch.adaptive_lighting_keuken_dimmed
+    - service: input_boolean.turn_off
+      entity_id: input_boolean.k_lights_on_k_sensor
+
+go_to_bed:
+  alias: Go to bed
+  sequence:
+    - service: script.turn_off_k_lights
+    - entity_id: input_boolean.k_lights_on_other
+      service: input_boolean.turn_off
+    - entity_id: group.living_room_lights
+      service: homeassistant.turn_off
+    - delay: 00:00:03
+
